@@ -26,7 +26,7 @@ typedef unsigned char urxbufoff_t;
 typedef unsigned char utxbufoff_t;
 unsigned char volatile uart_rcvbuf[UART_BUFLEN];
 urxbufoff_t volatile uart_rcvwptr;
-urxbufoff_t volatile uart_rcvrptr;
+urxbufoff_t uart_rcvrptr;
 
 #define UARTTX_BUFLEN 16
 unsigned char volatile uart_sndbuf[UARTTX_BUFLEN];
@@ -37,10 +37,6 @@ ISR(USART_RX_vect) {
 	urxbufoff_t reg = uart_rcvwptr;
 	uart_rcvbuf[reg++] = UDR0;
 	if(reg==UART_BUFLEN) reg = 0;	
-	if(reg==uart_rcvrptr) {
-		if (reg) reg--;
-		else reg = UART_BUFLEN-1;
-	}
 	uart_rcvwptr = reg;
 }
 
@@ -60,21 +56,29 @@ ISR(USART_UDRE_vect) {
 	
 	
 unsigned char uart_isdata(void) {
-	cli();
-	if (uart_rcvwptr != uart_rcvrptr) { sei(); return 1; }
-	else { sei(); return 0; }
+	if (uart_rcvwptr != uart_rcvrptr) {  return 1; }
+	else { return 0; }
 	}
+
+static void uart_sleep(void) {
+	cli();
+	if (uart_rcvwptr == uart_rcvrptr) { /* Race condition check */
+		sleep_enable();
+		sei();
+		sleep_cpu();
+		sleep_disable();
+	}
+	sei();	
+}
 
 unsigned char uart_recv(void) {
 	urxbufoff_t reg;
 	unsigned char val;
-	while (!uart_isdata()) sleep_mode(); // when there's nothing to do, one might idle...
-	cli();
+	while (!uart_isdata()) uart_sleep(); // when there's nothing to do, one might idle...
 	reg = uart_rcvrptr;
 	val = uart_rcvbuf[reg++];
 	if(reg==UART_BUFLEN) reg = 0;
 	uart_rcvrptr = reg;
-	sei();
 	return val;
 	}
 
