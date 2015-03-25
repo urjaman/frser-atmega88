@@ -1,7 +1,7 @@
 /*
  * This file is part of the frser-avr project.
  *
- * Copyright (C) 2009 Urja Rannikko <urjaman@gmail.com>
+ * Copyright (C) 2009,2015 Urja Rannikko <urjaman@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,26 +20,31 @@
 
 #include "main.h"
 #include "flash.h"
+#include "uart.h"
 
-unsigned char flash_databus_read(void) {
-	unsigned char rv;
+static uint8_t flash_databus_read(void) {
+	uint8_t rv;
 	rv = (PIND & 0xFC);
 	rv |= (PINB & 0x03);
 	return rv;
 }
 
-void flash_databus_tristate(void) {
+static void flash_databus_tristate(void) {
 	DDRB &= ~(_BV(0) | _BV(1));
 	DDRD &= ~(_BV(2) | _BV(3) | _BV(4) | _BV(5) | _BV(6) | _BV(7));
 	PORTB &= ~(_BV(0) | _BV(1));
 	PORTD &= ~(_BV(2) | _BV(3) | _BV(4) | _BV(5) | _BV(6) | _BV(7));
 }
 
-void flash_databus_output(unsigned char data) {
+static void flash_databus_output(unsigned char data) {
 	PORTB = ((PORTB & 0xFC) | (data & 0x03));
 	PORTD = ((PORTD & 0x03) | (data & 0xFC));
 	DDRB |= (_BV(0) | _BV(1));
 	DDRD |= (_BV(2) | _BV(3) | _BV(4) | _BV(5) | _BV(6) | _BV(7));
+}
+
+static void flash_chip_enable(void) {
+	PORTC &= ~_BV(3);
 }
 
 void flash_init(void) {
@@ -58,7 +63,7 @@ void flash_init(void) {
 }
 
 // 'push' 3 bits of addr
-void push_addr_bits(unsigned char bits) {
+static void push_addr_bits(unsigned char bits) {
 /*	if (bits&4) PORTB |= _BV(4);
 	else PORTB &= ~(_BV(4));
 	if (bits&1) PORTC |= _BV(1);
@@ -90,24 +95,17 @@ void push_addr_bits(unsigned char bits) {
 	);
 }
 
-void flash_chip_enable(void) {
-	PORTC &= ~_BV(3);
-}
 
-void flash_chip_disable(void) {
-	PORTC |= _BV(3);
-}
-
-void flash_output_enable(void) {
+static void flash_output_enable(void) {
 	PORTC &= ~_BV(4);
 }
 
-void flash_output_disable(void) {
+static void flash_output_disable(void) {
 	PORTC |= _BV(4);
 }
 
-void flash_setaddr(unsigned long int addr) {
-	unsigned char i,n,d;
+static void flash_setaddr(uint32_t addr) {
+	uint8_t i,n,d;
 	// Currently uses 18-bit addresses
 	for (i=6;i>0;i--) { // as i isn't really used here, this way generates faster & smaller code
 		asm volatile(
@@ -133,7 +131,8 @@ void flash_setaddr(unsigned long int addr) {
 		// addr = (addr<<3); // Done as 24-bit op in above asm + d=3
 	}
 }
-void flash_pulse_we(void) {
+
+static void flash_pulse_we(void) {
 	asm volatile(
 	"nop\n\t"
 	"sbi %0, 5\n\t"
@@ -143,17 +142,15 @@ void flash_pulse_we(void) {
 	"I" (_SFR_IO_ADDR(PINC))
 	);
 }
-	
-	
-	
-void flash_read_init(void) {
+
+static void flash_read_init(void) {
 	flash_databus_tristate();
 	flash_output_enable();
 }
 
 
 // assume chip enabled & output enabled & databus tristate
-unsigned char flash_readcycle(unsigned long int addr) {
+static uint8_t flash_readcycle(uint32_t addr) {
 	flash_setaddr(addr);
 	asm volatile(
 	"nop\n\t"
@@ -163,10 +160,9 @@ unsigned char flash_readcycle(unsigned long int addr) {
 }
 
 // assume only CE, and perform single cycle
-unsigned char flash_readcycle_single(unsigned long int addr) {
-	unsigned char data;
-	flash_databus_tristate();
-	flash_output_enable();
+uint8_t flash_read(uint32_t addr) {
+	uint8_t data;
+	flash_read_init();
 	flash_setaddr(addr);
 	data = flash_databus_read();
 	flash_output_disable();
@@ -174,16 +170,24 @@ unsigned char flash_readcycle_single(unsigned long int addr) {
 }
 
 // assume only CE, perform single cycle
-void flash_writecycle(unsigned long int addr, unsigned char data) {
+void flash_write(uint32_t addr, uint8_t data) {
 	flash_output_disable();
 	flash_databus_output(data);
 	flash_setaddr(addr);
 	flash_pulse_we();
 }
 
-
-void flash_db_dataset(unsigned char data) {
-	PORTB = ((PORTB & 0xFC) | (data & 0x03));
-	PORTD = ((PORTD & 0x03) | (data & 0xFC));
+void flash_readn(uint32_t addr, uint32_t len) {
+	flash_read_init();
+	do {
+		SEND(flash_readcycle(addr++));
+	} while(--len);
+	// safety features
+	flash_output_disable();
 }
 
+
+void flash_select_protocol(uint8_t allowed_protocols) {
+	(void)allowed_protocols;
+	flash_init();
+}

@@ -24,7 +24,8 @@ unsigned char uart_recv(void);
 void uart_send(unsigned char val);
 void uart_init(void);
 void uart_wait_txdone(void);
-#define BAUD 38400
+#define BAUD 115200
 #define RECEIVE() uart_recv()
 #define SEND(n) uart_send(n)
 #define UART_BUFLEN 224
+#define UARTTX_BUFLEN 16

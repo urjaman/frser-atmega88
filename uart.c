@@ -22,13 +22,12 @@
 #include "uart.h"
 
 // UART MODULE START
-typedef unsigned char urxbufoff_t;
-typedef unsigned char utxbufoff_t;
-unsigned char volatile uart_rcvbuf[UART_BUFLEN];
+typedef uint8_t urxbufoff_t;
+typedef uint8_t utxbufoff_t;
+uint8_t volatile uart_rcvbuf[UART_BUFLEN];
 urxbufoff_t volatile uart_rcvwptr;
 urxbufoff_t uart_rcvrptr;
 
-#define UARTTX_BUFLEN 16
 unsigned char volatile uart_sndbuf[UARTTX_BUFLEN];
 utxbufoff_t volatile uart_sndwptr;
 utxbufoff_t volatile uart_sndrptr;
@@ -36,7 +35,7 @@ utxbufoff_t volatile uart_sndrptr;
 ISR(USART_RX_vect) {
 	urxbufoff_t reg = uart_rcvwptr;
 	uart_rcvbuf[reg++] = UDR0;
-	if(reg==UART_BUFLEN) reg = 0;	
+	if(reg==UART_BUFLEN) reg = 0;
 	uart_rcvwptr = reg;
 }
 
@@ -53,12 +52,12 @@ ISR(USART_UDRE_vect) {
 		return;
 	}
 }
-	
-	
+
+
 unsigned char uart_isdata(void) {
 	if (uart_rcvwptr != uart_rcvrptr) {  return 1; }
 	else { return 0; }
-	}
+}
 
 static void uart_sleep(void) {
 	cli();
@@ -68,7 +67,7 @@ static void uart_sleep(void) {
 		sleep_cpu();
 		sleep_disable();
 	}
-	sei();	
+	sei();
 }
 
 unsigned char uart_recv(void) {
@@ -80,7 +79,7 @@ unsigned char uart_recv(void) {
 	if(reg==UART_BUFLEN) reg = 0;
 	uart_rcvrptr = reg;
 	return val;
-	}
+}
 
 void uart_send(unsigned char val) {
 	utxbufoff_t reg;
@@ -92,7 +91,7 @@ void uart_send(unsigned char val) {
 	if(reg==UARTTX_BUFLEN) reg = 0;
 	uart_sndwptr = reg;
 	sei();
-	}
+}
 
 void uart_init(void) {
 	cli();
@@ -112,8 +111,8 @@ void uart_init(void) {
 #endif
 	UCSR0B = 0xB8; // RX complete interrupt enable, UDRE int en, Receiver & Transmitter enable
 	sei();
-	}
-	
+}
+
 
 
 void uart_wait_txdone(void) {

@@ -24,26 +24,10 @@
 #include "frser.h"
 
 
-static void noints(void) {
-	EIMSK = 0;
-	EIFR = 0x03;
-	PCICR = 0;
-	PCMSK2 = 0;
-	PCMSK1 = 0;
-	PCMSK0 = 0;
-	sei();
-	}
-	
 int main(void) {
 	cli();
-	noints();
 	uart_init();
 	flash_init();
-	power_adc_disable();
-	power_timer0_disable();
-	power_timer1_disable();
-	power_timer2_disable();
-	power_twi_disable();
 	frser_main();
 }
 

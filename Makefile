@@ -19,26 +19,34 @@
 ##
 
 PROJECT=frser-avr
-DEPS=uart.h frser.h udelay.h main.h
-SOURCES=main.c uart.c flash.c udelay.c frser.c
+DEPS=uart.h main.h Makefile
+SOURCES=main.c uart.c flash.c
 CC=avr-gcc
 OBJCOPY=avr-objcopy
-MMCU=atmega168
-AVRBINDIR=~/avr-tools/bin
-AVRDUDECMD=avrdude -p m168 -c dt006 -E noreset
-CFLAGS=-mmcu=$(MMCU) -Os -mcall-prologues -fno-inline-small-functions -fno-tree-scev-cprop -frename-registers -g -Werror -Wall -W -pipe -combine -fwhole-program
+MMCU=atmega328p
+#AVRBINDIR=~/avr-tools/bin/
+AVRDUDECMD=avrdude -p m328p -c arduino -P /dev/ttyUSB2 -b 115200
+CFLAGS=-mmcu=$(MMCU) -Os -Wl,--relax -fno-inline-small-functions -fno-tree-scev-cprop -frename-registers -g -Werror -Wall -W -pipe -flto -flto-partition=none -fwhole-program
+
+include libfrser/Makefile.frser
+
+all: $(PROJECT).out
+	$(AVRBINDIR)avr-size $(PROJECT).out
  
 $(PROJECT).hex: $(PROJECT).out
-	$(AVRBINDIR)/$(OBJCOPY) -j .text -j .data -O ihex $(PROJECT).out $(PROJECT).hex
+	$(AVRBINDIR)$(OBJCOPY) -j .text -j .data -O ihex $(PROJECT).out $(PROJECT).hex
  
 $(PROJECT).out: $(SOURCES) $(DEPS)
-	$(AVRBINDIR)/$(CC) $(CFLAGS) -I./ -o $(PROJECT).out $(SOURCES)
+	$(AVRBINDIR)$(CC) $(CFLAGS) -I./ -o $(PROJECT).out $(SOURCES)
 
 asm: $(SOURCES) $(DEPS)
-	$(AVRBINDIR)/$(CC) $(CFLAGS) -S  -I./ -o $(PROJECT).s $(SOURCES)
+	$(AVRBINDIR)$(CC) $(CFLAGS) -S  -I./ -o $(PROJECT).s $(SOURCES)
  
 program: $(PROJECT).hex
-	$(AVRBINDIR)/$(AVRDUDECMD) -U flash:w:$(PROJECT).hex
+	$(AVRBINDIR)$(AVRDUDECMD) -U flash:w:$(PROJECT).hex
+
+objdump: $(PROJECT).out
+	$(AVRBINDIR)avr-objdump -xdC $(PROJECT).out | less
 
 clean:
 	rm -f $(PROJECT).out
@@ -46,4 +54,4 @@ clean:
 	rm -f $(PROJECT).s
 
 backup:
-	$(AVRBINDIR)/$(AVRDUDECMD) -U flash:r:backup.bin:r
+	$(AVRBINDIR)$(AVRDUDECMD) -U flash:r:backup.bin:r
