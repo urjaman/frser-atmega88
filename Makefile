@@ -26,7 +26,7 @@ OBJCOPY=avr-objcopy
 MMCU=atmega328p
 #AVRBINDIR=~/avr-tools/bin/
 AVRDUDECMD=avrdude -p m328p -c arduino -P /dev/ttyUSB2 -b 115200
-CFLAGS=-mmcu=$(MMCU) -Os -Wl,--relax -fno-inline-small-functions -fno-tree-scev-cprop -frename-registers -g -Werror -Wall -W -pipe -flto -flto-partition=none -fwhole-program
+CFLAGS=-mmcu=$(MMCU) -Os -Wl,--relax -fno-inline-small-functions -fno-tree-scev-cprop -frename-registers -g -Wall -W -pipe -flto -flto-partition=none -fwhole-program
 
 include libfrser/Makefile.frser
 
