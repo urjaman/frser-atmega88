@@ -25,19 +25,23 @@ CC=avr-gcc
 OBJCOPY=avr-objcopy
 MMCU=atmega328p
 
-BAUD ?= 115200
 F_CPU ?= 18432000
 
 #Device
 SERIAL_DEV ?= /dev/ttyACM0
+
+# Bootloader
+BLBAUD ?= 115200
+# Flashrom serial (=serprog)
+FRBAUD ?= 115200
 
 #Tools directory
 AVRTOOLDIR ?= /usr/avr/
 
 AVRBINDIR=$(AVRTOOLDIR)/bin/
 AVRETCDIR=$(AVRTOOLDIR)/etc/
-AVRDUDECMD=avrdude -C $(AVRETCDIR)avrdude.conf -p m328p -c arduino -P $(SERIAL_DEV) -b $(BAUD)
-CFLAGS=-mmcu=$(MMCU) -Os -Wl,--relax -fno-inline-small-functions -fno-tree-scev-cprop -frename-registers -g -Wall -W -pipe -DRAMSTART=0x100 -DBAUD=$(BAUD) -DF_CPU=$(F_CPU)
+AVRDUDECMD=avrdude -C $(AVRETCDIR)avrdude.conf -p m328p -c arduino -P $(SERIAL_DEV) -b $(BLBAUD)
+CFLAGS=-mmcu=$(MMCU) -Os -Wl,--relax -fno-inline-small-functions -fno-tree-scev-cprop -frename-registers -g -Wall -W -pipe -DRAMSTART=0x100 -DBAUD=$(FRBAUD) -DF_CPU=$(F_CPU)
 
 include libfrser/Makefile.frser
 
