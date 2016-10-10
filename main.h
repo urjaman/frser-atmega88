@@ -19,7 +19,6 @@
  */
 
 /* GENERIC DEFINITIONS FOR PROJECT */
-#define F_CPU 18432000
 #include <util/delay.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
