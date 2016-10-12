@@ -24,9 +24,25 @@ SOURCES=main.c uart.c flash.c
 CC=avr-gcc
 OBJCOPY=avr-objcopy
 MMCU=atmega328p
-#AVRBINDIR=~/avr-tools/bin/
-AVRDUDECMD=avrdude -p m328p -c arduino -P /dev/ttyUSB2 -b 115200
-CFLAGS=-mmcu=$(MMCU) -Os -Wl,--relax -fno-inline-small-functions -fno-tree-scev-cprop -frename-registers -g -Wall -W -pipe -flto -flto-partition=none -fwhole-program
+PARTNO=m328p
+
+F_CPU ?= 18432000
+
+#Device
+SERIAL_DEV ?= /dev/ttyACM0
+
+# Bootloader
+BLBAUD ?= 115200
+# Flashrom serial (=serprog)
+FRBAUD ?= 115200
+
+#Tools directory
+AVRTOOLDIR ?= /usr/avr/
+
+AVRBINDIR=$(AVRTOOLDIR)/bin/
+AVRETCDIR=$(AVRTOOLDIR)/etc/
+AVRDUDECMD=avrdude -C $(AVRETCDIR)avrdude.conf -p $(PARTNO) -c arduino -P $(SERIAL_DEV) -b $(BLBAUD)
+CFLAGS=-mmcu=$(MMCU) -Os -Wl,--relax -fno-inline-small-functions -fno-tree-scev-cprop -frename-registers -g -Wall -W -pipe -DRAMSTART=0x100 -DBAUD=$(FRBAUD) -DF_CPU=$(F_CPU)
 
 include libfrser/Makefile.frser
 
